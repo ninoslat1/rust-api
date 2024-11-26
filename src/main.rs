@@ -1,17 +1,25 @@
-use actix_web::{get, App, HttpResponse, HttpServer, Responder};
+use actix_web::{ App, HttpServer};
+use dotenv::dotenv; 
+use std::env; 
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello World!")
-}
+mod controllers; 
+mod routes; 
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
+
+    let port: u16 = env::var("APP_PORT")
+        .unwrap()
+        .parse()
+        .expect("APP_PORT must be a number");
+
+    // Start the HTTP server
     HttpServer::new(|| {
         App::new()
-            .service(hello)
+            .configure(routes::route::config) 
     })
-    .bind(("127.0.0.1", 3307))?
+    .bind(("127.0.0.1", port))?
     .run()
     .await
 }
