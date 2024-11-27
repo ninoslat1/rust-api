@@ -1,9 +1,12 @@
 use actix_web::{ App, HttpServer};
-use dotenv::dotenv; 
-use std::env; 
+use dotenv::dotenv;
+use std::env;
 
 mod controllers; 
 mod routes; 
+mod libs;
+mod models;
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
