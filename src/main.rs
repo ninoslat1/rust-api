@@ -6,6 +6,7 @@ mod controllers;
 mod routes; 
 mod libs;
 mod models;
+mod middlewares;
 
 
 #[actix_web::main]

@@ -3,6 +3,9 @@ use sqlx::Row;
 use dotenv::dotenv;
 use std::env;
 use base64::{encode_config, STANDARD};
+use jsonwebtoken::{encode, decode, DecodingKey, EncodingKey, Header, Validation};
+use argon2::{password_hash::{rand_core::OsRng, SaltString, PasswordHash, PasswordHasher, PasswordVerifier},Algorithm::Argon2id};
+use serde_json::json;
 
 use crate::libs::connection::connect_user;
 use crate::models::login::{LoginForm, LoginResponse, ErrorResponse};
@@ -59,17 +62,17 @@ pub async fn login(
         });
     }
 
-    HttpResponse::NotFound().json(ErrorResponse {
+    return HttpResponse::NotFound().json(ErrorResponse {
         message: "Pengguna tidak ada".to_string(),
     })
 }
 
-fn generate_token(_username: &str) -> String {
+fn generate_token(username: &str) -> String {
     dotenv().ok();
 
-    let token: String = env::var("APP_TOKEN")
-                            .unwrap()
-                            .parse()
-                            .expect("APP_TOKEN should exists");
-    return token.to_string();
+    let secret_key = env::var("APP_TOKEN").expect("APP_TOKEN must be set");
+    let encoding_key = EncodingKey::from_secret(secret_key.as_bytes());
+    let claims = json!({ "sub": username });
+
+    encode(&Header::default(), &claims, &encoding_key).unwrap()
 }

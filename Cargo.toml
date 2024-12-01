@@ -11,3 +11,7 @@ sqlx = {version = "0.7", default-features = false, features = ["runtime-async-st
 time = {version = "0.3.22", default-features = false, features = ["formatting", "macros"]}
 serde = { version = "1.0", features = ["derive"] }
 base64 = "0.13.1"
+jsonwebtoken = "8.2.0"
+argon2 = "0.4.1"
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
