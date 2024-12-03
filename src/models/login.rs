@@ -6,7 +6,6 @@ pub struct LoginForm {
 
 #[derive(serde::Serialize)]
 pub struct LoginResponse {
-    pub access_token: String,
     pub message: String,
 }
 

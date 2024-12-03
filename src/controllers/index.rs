@@ -1,18 +1,20 @@
-use actix_web::{web, HttpResponse, Responder};
-use sqlx::Row;
+use actix_web::{web::Form, HttpResponse, Responder};
+use sqlx::{ query, Row};
 use dotenv::dotenv;
 use std::env;
 use base64::{encode_config, STANDARD};
-use jsonwebtoken::{encode, decode, DecodingKey, EncodingKey, Header, Validation};
-use argon2::{password_hash::{rand_core::OsRng, SaltString, PasswordHash, PasswordHasher, PasswordVerifier},Algorithm::Argon2id};
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde_json::json;
+use cookie::{Cookie, SameSite, time};
 
 use crate::libs::connection::connect_user;
 use crate::models::login::{LoginForm, LoginResponse, ErrorResponse};
-use crate::models::user::user_name;
+use crate::models::user::user;
+use crate::models::stats::StatisticResponse;
+
 
 pub async fn login(
-    form: web::Form<LoginForm>,
+    form: Form<LoginForm>,
 ) -> impl Responder {
     let username = &form.username;
     let password = &form.password;
@@ -27,19 +29,16 @@ pub async fn login(
     let pool = connect_user().await.unwrap();
 
     // Jalankan query
-    let admin_row = sqlx::query(
-        "SELECT UserName FROM myuser WHERE UserName = ? AND Password LIKE ?",
+    let admin_row = query(
+        "SELECT UserName FROM myuser WHERE UserName = ? AND Password LIKE ?"
     )
     .bind(username)
     .bind(encoded_password)
     .fetch_optional(&pool)
     .await;
 
-
-
     if let Ok(Some(row)) = admin_row {
-        // Map hasil Row ke struct User
-        let admin = user_name {
+        let admin = user {
             ID: None,
             UserName: row.get("UserName"),
             UserCode: None,
@@ -56,10 +55,15 @@ pub async fn login(
         };
 
         let access_token = generate_token(&admin.UserName);
-        return HttpResponse::Ok().json(LoginResponse {
-            access_token,
+        
+        let cookie = Cookie::build("SESSIONID", access_token)
+                    .http_only(true).secure(true).same_site(SameSite::Strict).max_age(time::Duration::days(7)).finish();
+
+        return HttpResponse::Ok()
+        .cookie(cookie)
+        .json(LoginResponse {
             message: "Login berhasil".to_string(),
-        });
+        });       
     }
 
     return HttpResponse::NotFound().json(ErrorResponse {
@@ -75,4 +79,32 @@ fn generate_token(username: &str) -> String {
     let claims = json!({ "sub": username });
 
     encode(&Header::default(), &claims, &encoding_key).unwrap()
+}
+
+pub async fn get_statistic() -> impl Responder {
+    let pool = connect_user().await.unwrap();
+
+    let stats = sqlx::query(r#"
+        SELECT
+            (SELECT COUNT(*) FROM lot) AS lot_count,
+            (SELECT COUNT(*) FROM mycust) AS mycust_count,
+            (SELECT COUNT(*) FROM mylocation) AS mylocation_count,
+            (SELECT COUNT(*) FROM mypic) AS mypic_count,
+            (SELECT COUNT(*) FROM area) AS area_count;
+        "#)
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Gagal mengambil statistik dashboard: {}", e);
+            HttpResponse::InternalServerError().finish()
+        })
+        .unwrap();
+
+    HttpResponse::Ok().json(StatisticResponse {
+        lot_count: stats.get(0),
+        mycust_count: stats.get(1),
+        mylocation_count: stats.get(2),
+        mypic_count: stats.get(3),
+        area_count: stats.get(4),
+    })
 }

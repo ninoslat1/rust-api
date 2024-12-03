@@ -1,5 +1,7 @@
-#[derive(Debug)]
-pub struct user_name {
+use serde::Serialize;
+
+#[derive(Serialize)]
+pub struct user {
     pub ID: Option<i64>,
     pub UserName: String,
     pub UserCode: Option<String>,

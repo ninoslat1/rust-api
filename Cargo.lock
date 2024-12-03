@@ -1921,6 +1921,7 @@ dependencies = [
  "async-std",
  "base64 0.13.1",
  "chrono",
+ "cookie",
  "dotenv",
  "jsonwebtoken",
  "serde",
