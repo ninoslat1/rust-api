@@ -56,7 +56,7 @@ pub async fn login(
 
         let access_token = generate_token(&admin.UserName);
         
-        let cookie = Cookie::build("SESSIONID", access_token)
+        let cookie = Cookie::build("SESSION_ID", access_token)
                     .http_only(true).secure(true).same_site(SameSite::Strict).max_age(time::Duration::days(7)).finish();
 
         return HttpResponse::Ok()
